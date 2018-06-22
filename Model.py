@@ -6,21 +6,21 @@ class Model:
 	def __init__(self):
 		self.optimizer = tf.train.AdamOptimizer
 		
-	def _linear(self, input, n_output, name, bias_init=tf.zeros_initializer,
-			weight_init=tf.random_normal_initializer, activation=None):
+	def _linear(self, inputs, n_output, name, bias_init=tf.zeros_initializer,
+				weight_init=tf.random_normal_initializer, activation=None):
 		
-		assert input.get_shape()[-1] is not None
+		assert inputs.get_shape()[-1] is not None
 		with tf.variable_scope(name):
-			weights = tf.get_variable('w', [input.get_shape()[-1], n_output], initializer=weight_init)
+			weights = tf.get_variable('w', [inputs.get_shape()[-1], n_output], initializer=weight_init)
 			bias = tf.get_variable('b', [n_output], initializer=bias_init)
-			op = tf.matmul(input, weights) + bias
+			op = tf.matmul(inputs, weights) + bias
 			
 			if activation:
 				op = activation(op)
 		return op
 	
 	def encoder(self):
-		pass
+	
 	
 	def decoder(self):
 		pass
@@ -43,12 +43,14 @@ class Model:
 		return X, Y, output, loss, train
 	
 
-if __name__ == '__main__':
+def evaluate_ann():
 	my_model = Model()
 	x, y, op, los, trai = my_model.evaluate()
 	
 	inp = [[0, 0], [0, 1], [1, 0], [1, 1]]
 	opp = [[0, 0], [1, 0], [1, 0], [1, 1]]
+	
+	print(inp, opp)
 	
 	init = tf.global_variables_initializer()
 	sess = tf.Session()
@@ -56,4 +58,24 @@ if __name__ == '__main__':
 	for i in range(50):
 		out, _, cost = sess.run([op, trai, los], feed_dict={x: inp, y: opp})
 		print(out, cost)
-	# print(tf.get_default_graph().get_operations())
+
+
+def evaluate():
+	# inp = "This is the sentence one."
+	# op = "This is the expected sentence."
+	
+	inp = [
+		[1, 0, 0, 0, 0, 0, 0, 0], [0, 1, 0, 0, 0, 0, 0, 0],
+		[0, 0, 1, 0, 0, 0, 0, 0], [0, 0, 0, 1, 0, 0, 0, 0], [0, 0, 0, 0, 1, 0, 0, 0]]
+	op = [
+		[1, 0, 0, 0, 0, 0, 0, 0], [0, 1, 0, 0, 0, 0, 0, 0],
+		[0, 0, 1, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 1, 0, 0], [0, 0, 0, 0, 0, 0, 1, 0]]
+	
+	
+
+if __name__ == '__main__':
+	evaluate()
+	# inp = int_to_bin_list(4, 2)
+	# opp = int_to_bin_list(4, 2)
+	#
+	# print(inp, opp)
