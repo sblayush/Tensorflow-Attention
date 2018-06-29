@@ -20,7 +20,7 @@ class Model:
 		return op
 	
 	def encoder(self):
-	
+		pass
 	
 	def decoder(self):
 		pass
