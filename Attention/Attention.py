@@ -10,15 +10,28 @@ class Attention:
 		https://arxiv.org/abs/1508.04025
 	"""
 	
-	def __init__(self):
-		pass
+	def __init__(self, activation=None):
+		self.activation = activation
 	
-	def attention(self, X, encoder_states, decoder_states, time_major=False, return_score=True, return_context=False):
+	def attention(
+			self,
+			encoder_states,
+			enc_inp=None,
+			decoder_states=None,
+			time_major=False,
+			return_score=False,
+			return_context=False,
+			return_alphas=False
+			):
 		"""
+		score(t) = h(s).W.trans(h(t))  dim:[B, T2, T1] = [B, T1, D1].[D1, D2].transpose([B, T2, D2])
+		alphas = softmax(t)
 		Args:
-			:param X: Encoder inputs, shape: [B, T1, Dim]
 			:param encoder_states: Encoder outputs on which attention is to be applied, shape: [B, T1, D1]
+			:param enc_inp: Encoder inputs, shape: [B, T1, Dim]
 			:param decoder_states: Decoder states, shape: [B, T2, D2]
+				if None: self attention is implemented with dec_states tf.ones([B, 1, 1])
+			:param activation: activation function to apply on score
 			:param time_major: Default is False
 				True if shape of encoder/decoder is (T, B, D)
 				Flase if shape of encoder is (B, T, D)
@@ -38,10 +51,14 @@ class Attention:
 			# (T,B,D) => (B,T,D)
 			encoder_states = tf.transpose(encoder_states, [1, 0, 2])
 			decoder_states = tf.transpose(decoder_states, [1, 0, 2])
+
+		batch_size = array_ops.shape(encoder_states)[0]
 		
-		encoder_n = encoder_states.shape[2].value  # D value - hidden size of the RNN layer encoder
-		decoder_n = decoder_states.shape[2].value  # D value - hidden size of the RNN layer decoder
-		batch_size = array_ops.shape(decoder_states)[0]
+		if not decoder_states:
+			decoder_states = tf.ones([batch_size, 1, 1], dtype=encoder_states.dtype, name="dec_states")
+			
+		encoder_n = encoder_states.shape[2].value  # D1 value - hidden size of the RNN layer encoder
+		decoder_n = decoder_states.shape[2].value  # D2 value - hidden size of the RNN layer decoder
 		
 		# Trainable parameters
 		with tf.variable_scope("attn/attn_weight"):
@@ -53,7 +70,10 @@ class Attention:
 			h1 = tf.matmul(enc_reshape, w_omega)  # [(B*T1), D1][D1, D2] = [(B*T1), D2]
 			h1_reshape = tf.reshape(h1, tf.stack([batch_size, -1, decoder_n]), name="h1_reshape")  # [B, T1, D2]
 			dec_transpose = tf.transpose(decoder_states, [0, 2, 1])  # [B, D2, T2]
-			score = tf.matmul(h1_reshape, dec_transpose)  # [B, T1, D2][B, D2, T2] = [B, T1, T2]
+			if not self.activation:
+				score = tf.matmul(h1_reshape, dec_transpose)  # [B, T1, D2][B, D2, T2] = [B, T1, T2]
+			else:
+				score = self.activation(tf.matmul(h1_reshape, dec_transpose))  # [B, T1, D2][B, D2, T2] = [B, T1, T2]
 			score_transpose = tf.transpose(score, [0, 2, 1])  # [B, T2, T1]
 		
 		with tf.variable_scope("attn/align"):
@@ -61,16 +81,19 @@ class Attention:
 		
 		with tf.variable_scope("attn/outputs"):
 			outputs_argmax = tf.argmax(alphas, axis=2, name="outputs_argmax", output_type=tf.int32)  # [B, T2]
-			outputs = tf.gather_nd(params=X, indices=self._index_matrix_to_pairs(outputs_argmax))
+			outputs = tf.gather_nd(params=enc_inp, indices=self._index_matrix_to_pairs(outputs_argmax))
 
 		# Output of (Bi-)RNN is reduced with attention vector; the result has (B,D1) shape
 		with tf.variable_scope("attn/context_vec"):
-			context = tf.reduce_sum(tf.matmul(alphas, encoder_states), 1, name="context")   # [B, D1]
+			context = tf.reduce_sum(tf.matmul(alphas, encoder_states), axis=1, name="context")   # [B, D1]
+			print(context)
 		ret = [outputs]
 		if return_score:
 			ret.append(score_transpose)
 		if return_context:
 			ret.append(context)
+		if return_alphas:
+			ret.append(alphas)
 		return tuple(ret)
 		
 	def _index_matrix_to_pairs(self, index_matrix):

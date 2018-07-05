@@ -1,5 +1,5 @@
-Papers for LSTM:
-    LONG SHORT-TERM MEMORY:
+Papers for LSTM:\n\t
+    LONG SHORT-TERM MEMORY:\n
         http://www.bioinf.jku.at/publications/older/2604.pdf
     Blog:
         http://colah.github.io/posts/2015-08-Understanding-LSTMs/
