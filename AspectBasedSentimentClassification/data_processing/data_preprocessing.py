@@ -11,9 +11,9 @@ class DataProcessing:
 	
 	def __init__(self, training=False, embedding_size=100):
 		if training:
-			self.restaurant_train_xml_path = "C:/Users/ab38686/Desktop/restaurant_train/Restaurants_Train.xml"
+			self.restaurant_train_xml_path = "C:/Users/ab38686/Desktop/datasets/restaurant_train/Restaurants_Train.xml"
 		else:
-			self.restaurant_train_xml_path = "C:/Users/ab38686/Desktop/restaurant_train/Restaurants_Test.xml"
+			self.restaurant_train_xml_path = "C:/Users/ab38686/Desktop/datasets/restaurant_train/Restaurants_Test.xml"
 		self.n_polarity = len(polarity_map)
 		self.n_aspect_category = len(aspect_category_map)
 		self.n_vec = embedding_size

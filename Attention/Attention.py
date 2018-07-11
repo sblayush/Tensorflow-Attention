@@ -10,8 +10,9 @@ class Attention:
 		https://arxiv.org/abs/1508.04025
 	"""
 	
-	def __init__(self, activation=None):
+	def __init__(self, activation=None, is_decoder_present=False):
 		self.activation = activation
+		self.is_decoder_present = is_decoder_present
 	
 	def attention(
 			self,
@@ -54,7 +55,7 @@ class Attention:
 
 		batch_size = array_ops.shape(encoder_states)[0]
 		
-		if not decoder_states:
+		if not self.is_decoder_present:
 			decoder_states = tf.ones([batch_size, 1, 1], dtype=encoder_states.dtype, name="dec_states")
 			
 		encoder_n = encoder_states.shape[2].value  # D1 value - hidden size of the RNN layer encoder
@@ -80,13 +81,12 @@ class Attention:
 			alphas = tf.nn.softmax(score_transpose, axis=2, name='alphas')  # [B, T2, T1] with softmax on T1
 		
 		with tf.variable_scope("attn/outputs"):
-			outputs_argmax = tf.argmax(alphas, axis=2, name="outputs_argmax", output_type=tf.int32)  # [B, T2]
-			outputs = tf.gather_nd(params=enc_inp, indices=self._index_matrix_to_pairs(outputs_argmax))
+			alphas_argmax = tf.argmax(alphas, axis=2, name="outputs_argmax", output_type=tf.int32)  # [B, T2]
+			outputs = tf.gather_nd(params=enc_inp, indices=self._index_matrix_to_pairs(alphas_argmax))
 
 		# Output of (Bi-)RNN is reduced with attention vector; the result has (B,D1) shape
 		with tf.variable_scope("attn/context_vec"):
 			context = tf.reduce_sum(tf.matmul(alphas, encoder_states), axis=1, name="context")   # [B, D1]
-			print(context)
 		ret = [outputs]
 		if return_score:
 			ret.append(score_transpose)

@@ -18,3 +18,6 @@ Papers for sentiment classification:
     Recurrent Attention Network on Memory for Aspect Sentiment Analysis:
         http://www.cs.cmu.edu/~lbing/pub/emnlp17_aspect_sentiment.pdf
 
+Papers for summarization:
+    Get To The Point: Summarization with Pointer-Generator Networks:
+        https://arxiv.org/abs/1704.04368
