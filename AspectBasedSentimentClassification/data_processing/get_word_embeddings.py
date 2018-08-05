@@ -1,10 +1,9 @@
 import numpy as np
-
-path = "C:/Users/ab38686/Desktop/pyCharm/summarization/data"
+from Summarization.config_paths import word_embeddings_path
 
 
 def get_glove_word_embeddings(embedding_size):
-	with open(path + '/glove.6B.' + str(embedding_size) + 'd.txt', 'r', encoding="utf8") as f:
+	with open(word_embeddings_path + '/glove.6B.' + str(embedding_size) + 'd.txt', 'r', encoding="utf8") as f:
 		model = {}
 		for line in f:
 			split_line = line.split()

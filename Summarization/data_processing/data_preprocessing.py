@@ -1,27 +1,28 @@
-import json
 import numpy as np
 from AspectBasedSentimentClassification.data_processing.maps import polarity_map, aspect_category_map
 import nltk
 import os
-from autocorrect import spell
+from Summarization.config_paths import restaurant_train_xml_path
 from AspectBasedSentimentClassification.data_processing.get_word_embeddings import get_glove_word_embeddings
 
 
 class DataProcessing:
 	
-	def __init__(self, training=False, embedding_size=100):
+	def __init__(self, training=False, embedding_size=100, batch_size=50):
 		if training:
-			self.restaurant_train_xml_path = "C:/Users/ab38686/Desktop/datasets/cnn_news/unprocessed/cnn/stories"
-			# self.restaurant_train_xml_path = "C:/Users/ab38686/Desktop/datasets/cnn_news/processed/train/cnn/questions/training"
+			self.restaurant_train_xml_path = restaurant_train_xml_path
 		else:
-			self.restaurant_train_xml_path = "C:/Users/ab38686/Desktop/datasets/cnn_news/unprocessed/cnn/stories"
-			# self.restaurant_train_xml_path = "C:/Users/ab38686/Desktop/datasets/cnn_news/processed/test/cnn/questions/training"
+			self.restaurant_train_xml_path = restaurant_train_xml_path
 		self.n_polarity = len(polarity_map)
+		self.batch_size = batch_size
 		self.n_aspect_category = len(aspect_category_map)
 		self.n_vec = embedding_size
 		self.glove_embeddings = get_glove_word_embeddings(self.n_vec)
-		self.batch_size = 25
 		self.norm_glove_embeddings, self.vocab, self.inv_vocab = self._generate()
+		self.batches = None
+		self.batches_len = None
+		if training:
+			self.data_pre_processing()
 	
 	def _one_hot(self, pos, depth):
 		arr = np.zeros([depth], dtype=int)
@@ -34,12 +35,12 @@ class DataProcessing:
 			try:
 				word_vec = self.glove_embeddings[word]
 			except:
-				try:
-					word_vec = self.glove_embeddings[spell(word)]
-					# print("{} = {}".format(word, spell(word)))
-				except:
-					# print("{} not found!".format(word))
-					word_vec = np.zeros([self.n_vec])
+				# try:
+				# 	word_vec = self.glove_embeddings[spell(word)]
+				# 	# print("{} = {}".format(word, spell(word)))
+				# except:
+				# 	# print("{} not found!".format(word))
+				word_vec = np.zeros([self.n_vec])
 			word_vecs.append(word_vec)
 		return word_vecs
 	
@@ -63,9 +64,11 @@ class DataProcessing:
 		return text, summaries
 	
 	def data_pre_processing(self):
-		files = os.listdir(self.restaurant_train_xml_path)[:20000]
+		files = os.listdir(self.restaurant_train_xml_path)[:15000]
 		batches = {}
+		cnt = 0
 		for file in files:
+			cnt += 1
 			with open(self.restaurant_train_xml_path + '/' + file, 'r', encoding='utf-8') as f:
 				text, summaries = self.process_data(f)
 			text_words = nltk.word_tokenize(text)[:400]
@@ -82,8 +85,24 @@ class DataProcessing:
 				batches[len_key]['enc_inp'].append(enc_word_vecs_arr)
 				batches[len_key]['dec_inp'].append(dec_word_vecs_arr)
 				# batches[len_key]['vocab'].append([])
+			if cnt % 500 == 0:
+				print(cnt)
 		print("{} batches created!".format(len(batches)))
-		return batches
+		self.batches = batches
+		self.batches_len = len(batches)
+
+	def get_next_batch(self):
+		for batch in self.batches:
+			start = 0
+			end = self.batch_size
+			while start < len(self.batches[batch]):
+				current_batch = {
+					'enc_inp': self.batches[batch]['enc_inp'][start:end],
+					'dec_inp': self.batches[batch]['dec_inp'][start:end]
+				}
+				yield current_batch
+				start = end
+				end += self.batch_size
 	
 	def test_processing(self, text):
 		batches = {}
