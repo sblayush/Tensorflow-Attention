@@ -1,3 +1,7 @@
+import sys
+import os
+parent_dir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)).replace('\\', '/'))
+sys.path.append(parent_dir)
 import numpy as np
 import tensorflow as tf
 from Summarization.SummarizationModel import SummarizationModel
